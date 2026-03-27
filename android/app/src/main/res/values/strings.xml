@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WeatherLia</string>
+    <string name="title_activity_main">WeatherLia</string>
+    <string name="package_name">com.weatherlia.app</string>
+    <string name="custom_url_scheme">com.weatherlia.app</string>
+    <string name="widget_name">WeatherLia Widget</string>
+    <string name="widget_label">WeatherLia</string>
+    <string name="widget_temp_placeholder">--°C</string>
+    <string name="widget_updated_prefix">Updated:</string>
+</resources>
