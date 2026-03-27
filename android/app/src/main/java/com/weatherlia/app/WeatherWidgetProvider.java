@@ -60,7 +60,9 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                         context.getString(R.string.widget_condition_placeholder),
                         context.getString(R.string.widget_humidity_placeholder),
                         context.getString(R.string.widget_wind_placeholder),
-                        context.getString(R.string.widget_feels_like_placeholder)
+                        context.getString(R.string.widget_feels_like_placeholder),
+                        "⛅",
+                        R.drawable.widget_background
                 );
             }
             return;
@@ -76,7 +78,9 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     context.getString(R.string.widget_condition_loading),
                     context.getString(R.string.widget_humidity_placeholder),
                     context.getString(R.string.widget_wind_placeholder),
-                    context.getString(R.string.widget_feels_like_placeholder)
+                    context.getString(R.string.widget_feels_like_placeholder),
+                    "⛅",
+                    R.drawable.widget_background
             );
         }
 
@@ -86,7 +90,9 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     context.getString(R.string.widget_condition_placeholder),
                     context.getString(R.string.widget_humidity_placeholder),
                     context.getString(R.string.widget_wind_placeholder),
-                    context.getString(R.string.widget_feels_like_placeholder)
+                    context.getString(R.string.widget_feels_like_placeholder),
+                    "⛅",
+                    R.drawable.widget_background
             );
             try {
                 snapshot = fetchWeatherForCity(city, context);
@@ -104,7 +110,9 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                         snapshot.condition,
                         snapshot.humidity,
                         snapshot.wind,
-                        snapshot.feelsLike
+                        snapshot.feelsLike,
+                        snapshot.icon,
+                        snapshot.backgroundRes
                 );
             }
         });
@@ -119,16 +127,20 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             String condition,
             String humidity,
             String wind,
-            String feelsLike
+            String feelsLike,
+            String icon,
+            int backgroundRes
     ) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.weather_widget);
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_label));
         views.setTextViewText(R.id.widget_city, city);
         views.setTextViewText(R.id.widget_temp, temperature);
+        views.setTextViewText(R.id.widget_icon, icon);
         views.setTextViewText(R.id.widget_condition, condition);
         views.setTextViewText(R.id.widget_humidity_value, humidity);
         views.setTextViewText(R.id.widget_wind_value, wind);
         views.setTextViewText(R.id.widget_feels_like_value, feelsLike);
+        views.setInt(R.id.widget_root, "setBackgroundResource", backgroundRes);
 
         String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
         String updatedText = context.getString(R.string.widget_updated_prefix) + " " + currentTime;
@@ -178,7 +190,10 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         JSONObject current = json.getJSONObject("current");
 
         String temperature = Math.round(current.getDouble("temp_c")) + "°C";
-        String condition = current.getJSONObject("condition").getString("text");
+        JSONObject conditionObject = current.getJSONObject("condition");
+        String condition = conditionObject.getString("text");
+        int conditionCode = conditionObject.getInt("code");
+        int isDay = current.getInt("is_day");
         String humidity = current.getInt("humidity") + "%";
         String wind = Math.round(current.getDouble("wind_kph")) + " km/h";
         String feelsLike = Math.round(current.getDouble("feelslike_c")) + "°C";
@@ -187,7 +202,38 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             condition = context.getString(R.string.widget_condition_placeholder);
         }
 
-        return new WeatherSnapshot(temperature, condition, humidity, wind, feelsLike);
+        return new WeatherSnapshot(
+                temperature,
+                condition,
+                humidity,
+                wind,
+                feelsLike,
+                getWeatherIcon(conditionCode, isDay == 1),
+                getWeatherBackground(conditionCode)
+        );
+    }
+
+    private static String getWeatherIcon(int code, boolean isDay) {
+        if (code == 1000) return isDay ? "☀️" : "🌙";
+        if (code == 1003) return isDay ? "🌤️" : "☁️";
+        if (code == 1006 || code == 1009) return "☁️";
+        if (code == 1030 || code == 1135 || code == 1147) return "🌫️";
+        if (code == 1063 || code == 1180 || code == 1183 || code == 1186 || code == 1189 || code == 1192 || code == 1195 || code == 1240 || code == 1243 || code == 1246) return "🌧️";
+        if (code == 1066 || code == 1114 || code == 1117 || code == 1210 || code == 1213 || code == 1216 || code == 1219 || code == 1222 || code == 1225 || code == 1255 || code == 1258) return "❄️";
+        if (code == 1069 || code == 1072 || code == 1168 || code == 1171 || code == 1198 || code == 1201 || code == 1204 || code == 1207 || code == 1237 || code == 1249 || code == 1252 || code == 1261 || code == 1264) return "🧊";
+        if (code == 1087 || code == 1273 || code == 1276 || code == 1279 || code == 1282) return "⛈️";
+        return "⛅";
+    }
+
+    private static int getWeatherBackground(int code) {
+        if (code == 1000) return R.drawable.widget_background_clear;
+        if (code == 1003 || code == 1006 || code == 1009) return R.drawable.widget_background_cloudy;
+        if (code == 1030 || code == 1135 || code == 1147) return R.drawable.widget_background_cloudy;
+        if (code == 1087 || code == 1273 || code == 1276 || code == 1279 || code == 1282) return R.drawable.widget_background_storm;
+        if (code == 1063 || code == 1180 || code == 1183 || code == 1186 || code == 1189 || code == 1192 || code == 1195 || code == 1240 || code == 1243 || code == 1246) return R.drawable.widget_background_rain;
+        if (code == 1066 || code == 1114 || code == 1117 || code == 1210 || code == 1213 || code == 1216 || code == 1219 || code == 1222 || code == 1225 || code == 1255 || code == 1258) return R.drawable.widget_background_snow;
+        if (code == 1069 || code == 1072 || code == 1168 || code == 1171 || code == 1198 || code == 1201 || code == 1204 || code == 1207 || code == 1237 || code == 1249 || code == 1252 || code == 1261 || code == 1264) return R.drawable.widget_background_snow;
+        return R.drawable.widget_background;
     }
 
     private static class WeatherSnapshot {
@@ -196,13 +242,17 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         final String humidity;
         final String wind;
         final String feelsLike;
+        final String icon;
+        final int backgroundRes;
 
-        WeatherSnapshot(String temperature, String condition, String humidity, String wind, String feelsLike) {
+        WeatherSnapshot(String temperature, String condition, String humidity, String wind, String feelsLike, String icon, int backgroundRes) {
             this.temperature = temperature;
             this.condition = condition;
             this.humidity = humidity;
             this.wind = wind;
             this.feelsLike = feelsLike;
+            this.icon = icon;
+            this.backgroundRes = backgroundRes;
         }
     }
 }
