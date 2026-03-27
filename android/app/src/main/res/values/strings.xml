@@ -10,4 +10,12 @@
     <string name="widget_updated_prefix">Updated:</string>
     <string name="widget_no_city">Označi grad zvjezdicom u aplikaciji</string>
     <string name="widget_loading">Učitavanje...</string>
+    <string name="widget_condition_loading">Dohvaćam podatke...</string>
+    <string name="widget_condition_placeholder">—</string>
+    <string name="widget_humidity_label">Vlažnost</string>
+    <string name="widget_wind_label">Vjetar</string>
+    <string name="widget_feels_like_label">Osjećaj</string>
+    <string name="widget_humidity_placeholder">--%</string>
+    <string name="widget_wind_placeholder">-- km/h</string>
+    <string name="widget_feels_like_placeholder">--°C</string>
 </resources>

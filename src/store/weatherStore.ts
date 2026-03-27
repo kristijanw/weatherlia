@@ -48,11 +48,7 @@ export const useWeatherStore = create<WeatherStore>()(
             (f) => f.toLowerCase() === city.toLowerCase()
           );
           return {
-            favorites: isFav
-              ? state.favorites.filter(
-                  (f) => f.toLowerCase() !== city.toLowerCase()
-                )
-              : [...state.favorites, city],
+            favorites: isFav ? [] : [city],
           };
         }),
     }),

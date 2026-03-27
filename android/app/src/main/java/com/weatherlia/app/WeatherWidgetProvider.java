@@ -51,36 +51,84 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
 
         if (city.isEmpty()) {
             for (int appWidgetId : appWidgetIds) {
-                updateWidget(context, appWidgetManager, appWidgetId, context.getString(R.string.widget_no_city), context.getString(R.string.widget_temp_placeholder));
+                updateWidget(
+                        context,
+                        appWidgetManager,
+                        appWidgetId,
+                        context.getString(R.string.widget_no_city),
+                        context.getString(R.string.widget_temp_placeholder),
+                        context.getString(R.string.widget_condition_placeholder),
+                        context.getString(R.string.widget_humidity_placeholder),
+                        context.getString(R.string.widget_wind_placeholder),
+                        context.getString(R.string.widget_feels_like_placeholder)
+                );
             }
             return;
         }
 
         for (int appWidgetId : appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId, city, context.getString(R.string.widget_loading));
+            updateWidget(
+                    context,
+                    appWidgetManager,
+                    appWidgetId,
+                    city,
+                    context.getString(R.string.widget_loading),
+                    context.getString(R.string.widget_condition_loading),
+                    context.getString(R.string.widget_humidity_placeholder),
+                    context.getString(R.string.widget_wind_placeholder),
+                    context.getString(R.string.widget_feels_like_placeholder)
+            );
         }
 
         EXECUTOR.execute(() -> {
-            String tempValue = context.getString(R.string.widget_temp_placeholder);
+            WeatherSnapshot snapshot = new WeatherSnapshot(
+                    context.getString(R.string.widget_temp_placeholder),
+                    context.getString(R.string.widget_condition_placeholder),
+                    context.getString(R.string.widget_humidity_placeholder),
+                    context.getString(R.string.widget_wind_placeholder),
+                    context.getString(R.string.widget_feels_like_placeholder)
+            );
             try {
-                String tempC = fetchTemperatureForCity(city);
-                tempValue = tempC + "°C";
+                snapshot = fetchWeatherForCity(city, context);
             } catch (Exception ignored) {
-                // Keep placeholder temp on network errors.
+                // Keep placeholder values on network errors.
             }
 
-            final String finalTempValue = tempValue;
             for (int appWidgetId : appWidgetIds) {
-                updateWidget(context, appWidgetManager, appWidgetId, city, finalTempValue);
+                updateWidget(
+                        context,
+                        appWidgetManager,
+                        appWidgetId,
+                        city,
+                        snapshot.temperature,
+                        snapshot.condition,
+                        snapshot.humidity,
+                        snapshot.wind,
+                        snapshot.feelsLike
+                );
             }
         });
     }
 
-    private static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId, String city, String temperature) {
+    private static void updateWidget(
+            Context context,
+            AppWidgetManager appWidgetManager,
+            int appWidgetId,
+            String city,
+            String temperature,
+            String condition,
+            String humidity,
+            String wind,
+            String feelsLike
+    ) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.weather_widget);
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_label));
         views.setTextViewText(R.id.widget_city, city);
         views.setTextViewText(R.id.widget_temp, temperature);
+        views.setTextViewText(R.id.widget_condition, condition);
+        views.setTextViewText(R.id.widget_humidity_value, humidity);
+        views.setTextViewText(R.id.widget_wind_value, wind);
+        views.setTextViewText(R.id.widget_feels_like_value, feelsLike);
 
         String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
         String updatedText = context.getString(R.string.widget_updated_prefix) + " " + currentTime;
@@ -98,7 +146,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
-    private static String fetchTemperatureForCity(String city) throws Exception {
+    private static WeatherSnapshot fetchWeatherForCity(String city, Context context) throws Exception {
         String encodedCity = URLEncoder.encode(city, "UTF-8");
         String urlString = "https://api.weatherapi.com/v1/current.json?key=" + WEATHER_API_KEY + "&q=" + encodedCity + "&lang=hr";
         URL url = new URL(urlString);
@@ -127,7 +175,34 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         }
 
         JSONObject json = new JSONObject(response.toString());
-        double tempC = json.getJSONObject("current").getDouble("temp_c");
-        return String.valueOf(Math.round(tempC));
+        JSONObject current = json.getJSONObject("current");
+
+        String temperature = Math.round(current.getDouble("temp_c")) + "°C";
+        String condition = current.getJSONObject("condition").getString("text");
+        String humidity = current.getInt("humidity") + "%";
+        String wind = Math.round(current.getDouble("wind_kph")) + " km/h";
+        String feelsLike = Math.round(current.getDouble("feelslike_c")) + "°C";
+
+        if (condition.isEmpty()) {
+            condition = context.getString(R.string.widget_condition_placeholder);
+        }
+
+        return new WeatherSnapshot(temperature, condition, humidity, wind, feelsLike);
+    }
+
+    private static class WeatherSnapshot {
+        final String temperature;
+        final String condition;
+        final String humidity;
+        final String wind;
+        final String feelsLike;
+
+        WeatherSnapshot(String temperature, String condition, String humidity, String wind, String feelsLike) {
+            this.temperature = temperature;
+            this.condition = condition;
+            this.humidity = humidity;
+            this.wind = wind;
+            this.feelsLike = feelsLike;
+        }
     }
 }
