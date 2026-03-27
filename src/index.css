@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: hsl(210, 100%, 56%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: hsl(220, 20%, 10%);
+}
+
+/* Hide scrollbar but keep scrolling */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.bg-primary {
+  background-color: hsl(210, 100%, 56%);
+}
+
+.border-primary {
+  border-color: hsl(210, 100%, 56%);
+}
+
+.text-primary {
+  color: hsl(210, 100%, 56%);
+}
+
+.bg-primary\/20 {
+  background-color: hsl(210, 100%, 56%, 0.2);
+}
+
+.border-primary\/30 {
+  border-color: hsl(210, 100%, 56%, 0.3);
+}
+
+/* Leaflet fixes */
+.leaflet-container {
+  background: #1b2232;
+  font-family: inherit;
+}
