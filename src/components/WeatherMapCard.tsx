@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import 'leaflet-gesture-handling/dist/leaflet-gesture-handling.css';
 
 const OWM_KEY = '9de243494c0b295cca9337e1e96b00e2';
 
@@ -29,6 +30,8 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
 
     async function init() {
       const L = (await import('leaflet')).default;
+      (window as unknown as { L: typeof L }).L = L;
+      await import('leaflet-gesture-handling');
 
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -37,7 +40,17 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
 
       if (!mapRef.current) return;
 
-      map = L.map(mapRef.current, { zoomControl: true }).setView([lat, lon], 7);
+      map = L.map(mapRef.current, {
+        zoomControl: true,
+        gestureHandling: true,
+        gestureHandlingOptions: {
+          text: {
+            touch: 'Pomičite kartu pomoću dva prsta',
+            scroll: 'Upotrijebite Ctrl i kotačić miša da biste zumirali kartu',
+            scrollMac: 'Upotrijebite ⌘ i kotačić da biste zumirali kartu',
+          },
+        },
+      }).setView([lat, lon], 7);
       mapInstanceRef.current = map;
 
       // Dark base tiles
