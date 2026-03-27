@@ -17,10 +17,18 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/widget_temp"
+        android:id="@+id/widget_city"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:text="@string/widget_temp_placeholder"
         android:textColor="#FFFFFFFF"
         android:textSize="28sp"

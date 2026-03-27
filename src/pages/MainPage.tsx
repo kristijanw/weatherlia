@@ -9,11 +9,12 @@ import { CurrentWeatherCard } from '../components/CurrentWeatherCard';
 import { HourlyForecast } from '../components/HourlyForecast';
 import { SevenDayForecast } from '../components/SevenDayForecast';
 import { WeatherMapCard } from '../components/WeatherMapCard';
+import { syncFavoriteCityToWidget } from '../plugins/widgetSync';
 
 const DEFAULT_CITY = 'Rijeka';
 
 export function MainPage() {
-  const { currentWeather, isLoading, error, setWeather, setLoading, setError, addRecentSearch } =
+  const { currentWeather, isLoading, error, favorites, setWeather, setLoading, setError, addRecentSearch } =
     useWeatherStore();
   const [city, setCity] = useState(DEFAULT_CITY);
   const hasLoaded = useRef(false);
@@ -42,6 +43,11 @@ export function MainPage() {
       load(DEFAULT_CITY);
     }
   }, [load]);
+
+  useEffect(() => {
+    const lastStarred = favorites[favorites.length - 1] ?? '';
+    void syncFavoriteCityToWidget(lastStarred);
+  }, [favorites]);
 
   const alerts = currentWeather?.alerts?.alert ?? [];
 
