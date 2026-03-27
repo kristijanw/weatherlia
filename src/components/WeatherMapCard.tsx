@@ -129,7 +129,7 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
       <div
         ref={mapRef}
         className="rounded-xl overflow-hidden"
-        style={{ height: 300 }}
+        style={{ height: 500 }}
       />
     </motion.div>
   );
