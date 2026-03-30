@@ -7,6 +7,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import org.json.JSONObject;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.nio.charset.StandardCharsets;
 
 public class WeatherWidgetProvider extends AppWidgetProvider {
     private static final String PREFS_NAME = "weatherlia_widget";
@@ -61,6 +64,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                         context.getString(R.string.widget_humidity_placeholder),
                         context.getString(R.string.widget_wind_placeholder),
                         context.getString(R.string.widget_feels_like_placeholder),
+                        context.getString(R.string.widget_aqi_placeholder),
+                        0,
                         "⛅",
                         R.drawable.widget_background
                 );
@@ -79,6 +84,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     context.getString(R.string.widget_humidity_placeholder),
                     context.getString(R.string.widget_wind_placeholder),
                     context.getString(R.string.widget_feels_like_placeholder),
+                    context.getString(R.string.widget_aqi_placeholder),
+                    0,
                     "⛅",
                     R.drawable.widget_background
             );
@@ -91,6 +98,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     context.getString(R.string.widget_humidity_placeholder),
                     context.getString(R.string.widget_wind_placeholder),
                     context.getString(R.string.widget_feels_like_placeholder),
+                    context.getString(R.string.widget_aqi_placeholder),
+                    0,
                     "⛅",
                     R.drawable.widget_background
             );
@@ -111,6 +120,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                         snapshot.humidity,
                         snapshot.wind,
                         snapshot.feelsLike,
+                        snapshot.airQuality,
+                        snapshot.aqiBarLevel,
                         snapshot.icon,
                         snapshot.backgroundRes
                 );
@@ -128,10 +139,18 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             String humidity,
             String wind,
             String feelsLike,
+            String airQuality,
+            int aqiBarLevel,
             String icon,
             int backgroundRes
     ) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.weather_widget);
+        Resources res = context.getResources();
+        int outerPad = res.getDimensionPixelSize(R.dimen.widget_outer_padding);
+        int innerPad = res.getDimensionPixelSize(R.dimen.widget_inner_padding);
+        views.setViewPadding(R.id.widget_outer, outerPad, outerPad, outerPad, outerPad);
+        views.setViewPadding(R.id.widget_root, innerPad, innerPad, innerPad, innerPad);
+
         views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_label));
         views.setTextViewText(R.id.widget_city, city);
         views.setTextViewText(R.id.widget_temp, temperature);
@@ -140,6 +159,15 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_humidity_value, humidity);
         views.setTextViewText(R.id.widget_wind_value, wind);
         views.setTextViewText(R.id.widget_feels_like_value, feelsLike);
+        views.setTextViewText(R.id.widget_aqi_text, airQuality);
+        if (aqiBarLevel > 0) {
+            views.setViewVisibility(R.id.widget_aqi_bar, View.VISIBLE);
+            views.setViewVisibility(R.id.widget_aqi_legend, View.VISIBLE);
+            views.setProgressBar(R.id.widget_aqi_bar, 6, aqiBarLevel, false);
+        } else {
+            views.setViewVisibility(R.id.widget_aqi_bar, View.GONE);
+            views.setViewVisibility(R.id.widget_aqi_legend, View.GONE);
+        }
         views.setInt(R.id.widget_root, "setBackgroundResource", backgroundRes);
 
         String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
@@ -153,6 +181,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                 launchIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+        views.setOnClickPendingIntent(R.id.widget_outer, pendingIntent);
         views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
@@ -160,7 +189,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
 
     private static WeatherSnapshot fetchWeatherForCity(String city, Context context) throws Exception {
         String encodedCity = URLEncoder.encode(city, "UTF-8");
-        String urlString = "https://api.weatherapi.com/v1/current.json?key=" + WEATHER_API_KEY + "&q=" + encodedCity + "&lang=hr";
+        String urlString = "https://api.weatherapi.com/v1/current.json?key=" + WEATHER_API_KEY + "&q=" + encodedCity + "&aqi=yes&lang=hr";
         URL url = new URL(urlString);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
@@ -172,7 +201,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             throw new IllegalStateException("Weather API request failed with status " + statusCode);
         }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
         ArrayList<String> lines = new ArrayList<>();
         String line;
         while ((line = reader.readLine()) != null) {
@@ -197,6 +226,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         String humidity = current.getInt("humidity") + "%";
         String wind = Math.round(current.getDouble("wind_kph")) + " km/h";
         String feelsLike = Math.round(current.getDouble("feelslike_c")) + "°C";
+        AirQualityDisplay air = buildAirQualityDisplay(context, current.optJSONObject("air_quality"));
 
         if (condition.isEmpty()) {
             condition = context.getString(R.string.widget_condition_placeholder);
@@ -208,9 +238,104 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                 humidity,
                 wind,
                 feelsLike,
+                air.summaryText,
+                air.barLevel,
                 getWeatherIcon(conditionCode, isDay == 1),
                 getWeatherBackground(conditionCode)
         );
+    }
+
+    private static class AirQualityDisplay {
+        final String summaryText;
+        /** 1–6 za EPA traku; 0 = sakrij traku */
+        final int barLevel;
+
+        AirQualityDisplay(String summaryText, int barLevel) {
+            this.summaryText = summaryText;
+            this.barLevel = barLevel;
+        }
+    }
+
+    private static AirQualityDisplay buildAirQualityDisplay(Context context, JSONObject aq) {
+        if (aq == null) {
+            return new AirQualityDisplay(context.getString(R.string.widget_aqi_unavailable), 0);
+        }
+        int epa = aq.optInt("us-epa-index", -1);
+        if (epa >= 1 && epa <= 6) {
+            String line1 = context.getString(R.string.widget_aqi_label)
+                    + ": "
+                    + epaIndexLabel(context, epa)
+                    + " (EPA "
+                    + epa
+                    + ")";
+            return new AirQualityDisplay(airQualityTwoLines(line1, aq), epa);
+        }
+        int defra = aq.optInt("gb-defra-index", -1);
+        if (defra >= 1 && defra <= 10) {
+            int bar = Math.max(1, Math.min(6, (int) Math.round(defra * 6.0 / 10.0)));
+            String line1 = context.getString(R.string.widget_aqi_label) + ": UK indeks " + defra + "/10";
+            return new AirQualityDisplay(airQualityTwoLines(line1, aq), bar);
+        }
+        if (!aq.isNull("pm2_5")) {
+            double pm25 = aq.optDouble("pm2_5", 0);
+            int bar = pm25ToApproxEpaBand(pm25);
+            String line1 = context.getString(R.string.widget_aqi_label) + ": PM2.5 " + Math.round(pm25) + " µg/m³";
+            return new AirQualityDisplay(airQualityTwoLines(line1, aq), bar);
+        }
+        return new AirQualityDisplay(context.getString(R.string.widget_aqi_unavailable), 0);
+    }
+
+    private static String pmDetailsLine(JSONObject aq) {
+        StringBuilder sb = new StringBuilder();
+        boolean any = false;
+        if (!aq.isNull("pm2_5")) {
+            sb.append("PM2.5 ").append(Math.round(aq.optDouble("pm2_5", 0)));
+            any = true;
+        }
+        if (!aq.isNull("pm10")) {
+            if (any) {
+                sb.append(" · ");
+            }
+            sb.append("PM10 ").append(Math.round(aq.optDouble("pm10", 0)));
+            any = true;
+        }
+        if (any) {
+            sb.append(" µg/m³");
+        }
+        return sb.toString();
+    }
+
+    private static String airQualityTwoLines(String headline, JSONObject aq) {
+        String pm = pmDetailsLine(aq);
+        return pm.isEmpty() ? headline : headline + "\n" + pm;
+    }
+
+    private static int pm25ToApproxEpaBand(double pm25) {
+        if (pm25 <= 12.0) return 1;
+        if (pm25 <= 35.4) return 2;
+        if (pm25 <= 55.4) return 3;
+        if (pm25 <= 150.4) return 4;
+        if (pm25 <= 250.4) return 5;
+        return 6;
+    }
+
+    private static String epaIndexLabel(Context context, int index) {
+        switch (index) {
+            case 1:
+                return context.getString(R.string.aqi_epa_good);
+            case 2:
+                return context.getString(R.string.aqi_epa_moderate);
+            case 3:
+                return context.getString(R.string.aqi_epa_sensitive);
+            case 4:
+                return context.getString(R.string.aqi_epa_unhealthy);
+            case 5:
+                return context.getString(R.string.aqi_epa_very_unhealthy);
+            case 6:
+                return context.getString(R.string.aqi_epa_hazardous);
+            default:
+                return context.getString(R.string.widget_aqi_unavailable);
+        }
     }
 
     private static String getWeatherIcon(int code, boolean isDay) {
@@ -242,15 +367,29 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         final String humidity;
         final String wind;
         final String feelsLike;
+        final String airQuality;
+        final int aqiBarLevel;
         final String icon;
         final int backgroundRes;
 
-        WeatherSnapshot(String temperature, String condition, String humidity, String wind, String feelsLike, String icon, int backgroundRes) {
+        WeatherSnapshot(
+                String temperature,
+                String condition,
+                String humidity,
+                String wind,
+                String feelsLike,
+                String airQuality,
+                int aqiBarLevel,
+                String icon,
+                int backgroundRes
+        ) {
             this.temperature = temperature;
             this.condition = condition;
             this.humidity = humidity;
             this.wind = wind;
             this.feelsLike = feelsLike;
+            this.airQuality = airQuality;
+            this.aqiBarLevel = aqiBarLevel;
             this.icon = icon;
             this.backgroundRes = backgroundRes;
         }

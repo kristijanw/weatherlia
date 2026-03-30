@@ -13,6 +13,18 @@ export interface WeatherCondition {
   code: number;
 }
 
+/** WeatherAPI `aqi=yes` — pollutant µg/m³ and US EPA / UK DEFRA indeksi. */
+export interface AirQuality {
+  co?: number;
+  no2?: number;
+  o3?: number;
+  so2?: number;
+  pm2_5?: number;
+  pm10?: number;
+  'us-epa-index'?: number;
+  'gb-defra-index'?: number;
+}
+
 export interface CurrentWeather {
   temp_c: number;
   temp_f: number;
@@ -26,6 +38,7 @@ export interface CurrentWeather {
   uv: number;
   is_day: number;
   condition: WeatherCondition;
+  air_quality?: AirQuality;
 }
 
 export interface HourWeather {

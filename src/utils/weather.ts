@@ -31,6 +31,46 @@ export function getUVLabel(uv: number): { label: string; color: string } {
   return { label: 'Ekstremno', color: 'text-purple-400' };
 }
 
+/** US EPA kvaliteta zraka (1–6) — WeatherAPI `us-epa-index`. */
+export function getEpaAqiLabel(index: number): { label: string; color: string } {
+  switch (index) {
+    case 1:
+      return { label: 'Dobar', color: 'text-emerald-300' };
+    case 2:
+      return { label: 'Umjeren', color: 'text-lime-300' };
+    case 3:
+      return { label: 'Nezdrav za osjetljive', color: 'text-yellow-300' };
+    case 4:
+      return { label: 'Nezdrav', color: 'text-orange-400' };
+    case 5:
+      return { label: 'Vrlo nezdrav', color: 'text-red-400' };
+    case 6:
+      return { label: 'Opasan', color: 'text-purple-400' };
+    default:
+      return { label: 'Nepoznato', color: 'text-white/60' };
+  }
+}
+
+/** Segmenti trake EPA 1–6 (pozadina). */
+export function getEpaAqiBarSegmentClass(index: number): string {
+  switch (index) {
+    case 1:
+      return 'bg-emerald-400';
+    case 2:
+      return 'bg-lime-400';
+    case 3:
+      return 'bg-yellow-400';
+    case 4:
+      return 'bg-orange-500';
+    case 5:
+      return 'bg-red-500';
+    case 6:
+      return 'bg-purple-500';
+    default:
+      return 'bg-white/20';
+  }
+}
+
 export function formatDate(dateStr: string): string {
   const today = new Date();
   const tomorrow = new Date(today);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Insets card from launcher cell edges (hosts apply uneven default padding). -->
+    <dimen name="widget_outer_padding">10dp</dimen>
+    <dimen name="widget_inner_padding">14dp</dimen>
+</resources>

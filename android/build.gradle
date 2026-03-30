@@ -24,6 +24,19 @@ allprojects {
     }
 }
 
+// Capacitor 8 defaults to Java 21; override so builds work with JDK 17 (LTS).
+subprojects { sub ->
+    sub.afterEvaluate {
+        def androidExt = sub.extensions.findByName('android')
+        if (androidExt != null) {
+            androidExt.compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

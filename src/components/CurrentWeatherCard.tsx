@@ -1,7 +1,14 @@
-import { Star, Droplets, Wind, Gauge, Eye, Sun, Thermometer } from 'lucide-react';
+import { Star, Droplets, Wind, Gauge, Eye, Sun, Thermometer, Leaf } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useWeatherStore } from '../store/weatherStore';
-import { getWeatherEmoji, getWeatherGradient, getUVLabel, formatTemp } from '../utils/weather';
+import {
+  getWeatherEmoji,
+  getWeatherGradient,
+  getUVLabel,
+  getEpaAqiLabel,
+  getEpaAqiBarSegmentClass,
+  formatTemp,
+} from '../utils/weather';
 import type { WeatherData } from '../types/weather';
 
 interface CurrentWeatherCardProps {
@@ -16,6 +23,12 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
   const gradient = getWeatherGradient(current.condition.code, current.is_day);
   const emoji = getWeatherEmoji(current.condition.code, current.is_day);
   const uv = getUVLabel(current.uv);
+  const epaIndex = current.air_quality?.['us-epa-index'];
+  const aqi = typeof epaIndex === 'number' ? getEpaAqiLabel(epaIndex) : null;
+  const pm25 =
+    typeof current.air_quality?.pm2_5 === 'number'
+      ? `${Math.round(current.air_quality.pm2_5)} µg/m³`
+      : null;
 
   const localDate = new Date(location.localtime).toLocaleDateString('hr-HR', {
     weekday: 'long',
@@ -84,6 +97,38 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
           icon={<Thermometer size={16} />}
           label="Izlazak / Zalazak"
           value={astro ? `${astro.sunrise} / ${astro.sunset}` : '–'}
+        />
+        <StatCard
+          icon={<Leaf size={16} />}
+          label="Kvaliteta zraka"
+          value={
+            aqi && typeof epaIndex === 'number' ? (
+              <div className="space-y-2">
+                <div>
+                  <span className={aqi.color}>
+                    {aqi.label} (EPA {epaIndex})
+                  </span>
+                  {pm25 && <span className="text-white/70"> · PM2.5 {pm25}</span>}
+                </div>
+                <div className="flex rounded overflow-hidden h-2 border border-white/15">
+                  {[1, 2, 3, 4, 5, 6].map((step) => (
+                    <div
+                      key={step}
+                      className={`flex-1 ${getEpaAqiBarSegmentClass(step)} ${
+                        step === epaIndex ? 'ring-2 ring-white/70 ring-inset z-10' : 'opacity-85'
+                      }`}
+                      title={`EPA ${step}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[10px] text-white/45 leading-tight">
+                  EPA 1 = dobar zrak, 6 = opasno (WeatherAPI / US EPA)
+                </p>
+              </div>
+            ) : (
+              <span className="text-white/50">Nema podataka za ovu lokaciju</span>
+            )
+          }
         />
       </div>
     </motion.div>

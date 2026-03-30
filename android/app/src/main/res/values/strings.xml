@@ -15,6 +15,16 @@
     <string name="widget_humidity_label">Vlažnost</string>
     <string name="widget_wind_label">Vjetar</string>
     <string name="widget_feels_like_label">Osjećaj</string>
+    <string name="widget_aqi_label">Zrak (EPA)</string>
+    <string name="widget_aqi_placeholder">Učitavanje…</string>
+    <string name="widget_aqi_unavailable">Nema podataka za zrak</string>
+    <string name="widget_aqi_scale_hint">Ljestvica EPA 1 (dobar) → 6 (opasan)</string>
+    <string name="aqi_epa_good">Dobar</string>
+    <string name="aqi_epa_moderate">Umjeren</string>
+    <string name="aqi_epa_sensitive">Nezdrav za osjetljive</string>
+    <string name="aqi_epa_unhealthy">Nezdrav</string>
+    <string name="aqi_epa_very_unhealthy">Vrlo nezdrav</string>
+    <string name="aqi_epa_hazardous">Opasan</string>
     <string name="widget_humidity_placeholder">--%</string>
     <string name="widget_wind_placeholder">-- km/h</string>
     <string name="widget_feels_like_placeholder">--°C</string>
