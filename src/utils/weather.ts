@@ -1,24 +1,24 @@
 export function getWeatherEmoji(code: number, isDay: number): string {
-  if (code === 1000) return isDay ? '☀️' : '🌙';
-  if (code === 1003) return '⛅';
-  if (code === 1006) return '☁️';
-  if (code === 1009) return '☁️';
-  if ([1030, 1135, 1147].includes(code)) return '🌫️';
-  if ([1063, 1150, 1153, 1180, 1183].includes(code)) return '🌦️';
-  if ([1186, 1189, 1192, 1195, 1240, 1243, 1246].includes(code)) return '🌧️';
-  if ([1087, 1273, 1276, 1279, 1282].includes(code)) return '⛈️';
-  if ([1066, 1114, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code)) return '🌨️';
-  if ([1072, 1168, 1171, 1198, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264].includes(code)) return '🧊';
+  if (code === 0 || code === 1) return isDay ? '☀️' : '🌙';
+  if (code === 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code === 45 || code === 48) return '🌫️';
+  if (code >= 51 && code <= 57) return '🌦️';
+  if (code >= 61 && code <= 67) return '🌧️';
+  if (code >= 71 && code <= 77) return '🌨️';
+  if (code >= 80 && code <= 82) return '🌧️';
+  if (code === 85 || code === 86) return '🌨️';
+  if (code >= 95) return '⛈️';
   return '🌡️';
 }
 
 export function getWeatherGradient(code: number, isDay: number): string {
   if (!isDay) return 'bg-gradient-to-br from-[#171726] to-[#0c0c12]';
-  if (code === 1000) return 'bg-gradient-to-br from-[#f99e1f] to-[#f2590d]';
-  if ([1006, 1009].includes(code)) return 'bg-gradient-to-br from-[#47536b] to-[#363d49]';
-  if ([1063, 1150, 1153, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246].includes(code))
+  if (code === 0 || code === 1) return 'bg-gradient-to-br from-[#f99e1f] to-[#f2590d]';
+  if (code === 3) return 'bg-gradient-to-br from-[#47536b] to-[#363d49]';
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82))
     return 'bg-gradient-to-br from-[#2e426b] to-[#1b2232]';
-  if ([1066, 1114, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code))
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86)
     return 'bg-gradient-to-br from-[#9cb3c9] to-[#60809f]';
   return 'bg-gradient-to-br from-[#2d3a52] to-[#1e2535]';
 }
@@ -31,7 +31,7 @@ export function getUVLabel(uv: number): { label: string; color: string } {
   return { label: 'Ekstremno', color: 'text-purple-400' };
 }
 
-/** US EPA kvaliteta zraka (1–6) — WeatherAPI `us-epa-index`. */
+/** US EPA kvaliteta zraka (1–6) — Open-Meteo US AQI mapiran na EPA indeks 1–6. */
 export function getEpaAqiLabel(index: number): { label: string; color: string } {
   switch (index) {
     case 1:

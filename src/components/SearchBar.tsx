@@ -164,7 +164,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 {results.map((r) => (
                   <button
                     key={r.id}
-                    onClick={() => handleSelect(r.name)}
+                    onClick={() => handleSelect(`${r.lat},${r.lon}`)}
                     className="w-full text-left px-3 py-2 hover:bg-white/10 rounded-lg transition-colors"
                   >
                     <span className="text-white text-sm">{r.name}</span>

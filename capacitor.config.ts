@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.weatherlia.app',
-  appName: 'WeatherLia',
+  appId: 'hr.liait.weatherlia',
+  appName: 'Weatherlia',
   webDir: 'dist',
   plugins: {
     CapacitorHttp: {

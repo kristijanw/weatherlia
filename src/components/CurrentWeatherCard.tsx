@@ -122,7 +122,7 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
                   ))}
                 </div>
                 <p className="text-[10px] text-white/45 leading-tight">
-                  EPA 1 = dobar zrak, 6 = opasno (WeatherAPI / US EPA)
+                  EPA 1 = dobar zrak, 6 = opasno (US EPA)
                 </p>
               </div>
             ) : (

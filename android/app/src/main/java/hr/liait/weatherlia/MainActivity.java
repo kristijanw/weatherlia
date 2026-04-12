@@ -1,4 +1,4 @@
-package com.weatherlia.app;
+package hr.liait.weatherlia;
 
 import android.os.Bundle;
 

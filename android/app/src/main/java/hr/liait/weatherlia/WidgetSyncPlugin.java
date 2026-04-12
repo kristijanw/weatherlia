@@ -1,4 +1,4 @@
-package com.weatherlia.app;
+package hr.liait.weatherlia;
 
 import android.content.Context;
 import android.content.SharedPreferences;

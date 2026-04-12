@@ -9,6 +9,7 @@ import {
 } from '../utils/owmAirPollution';
 
 const OWM_KEY = '9de243494c0b295cca9337e1e96b00e2';
+const AQICN_KEY = import.meta.env.VITE_AQICN_TOKEN ?? '';
 
 const TILE_LAYERS = [
   { id: 'precipitation_new', label: 'Oborine' },
@@ -114,7 +115,16 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
         map.removeLayer(overlayRef.current);
         overlayRef.current = null;
       }
-      if (activeLayer === 'air_pollution') return;
+      if (activeLayer === 'air_pollution') {
+        if (!AQICN_KEY) return;
+        const overlay = L.tileLayer(
+          `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_KEY}`,
+          { opacity: 0.7, maxZoom: 19, attribution: '© <a href="https://waqi.info">WAQI</a>' }
+        );
+        overlay.addTo(map);
+        overlayRef.current = overlay;
+        return;
+      }
       const overlay = L.tileLayer(
         `https://tile.openweathermap.org/map/${activeLayer}/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
         { opacity: 0.6, maxZoom: 19 }
