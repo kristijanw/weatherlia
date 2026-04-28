@@ -25,7 +25,7 @@ export async function fetchOwmAirPollution(
 ): Promise<OwmAirPollutionResponse> {
   const url = `${OWM_AIR_URL}?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&appid=${encodeURIComponent(appId)}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Nije moguće učitati kvalitetu zraka (OpenWeatherMap).');
+  if (!res.ok) throw new Error('Unable to load air quality data (OpenWeatherMap).');
   return res.json();
 }
 
@@ -38,37 +38,37 @@ export function getOwmAqiPresentation(aqi: number): {
   switch (aqi) {
     case 1:
       return {
-        label: 'Dobro',
+        label: 'Good',
         segmentClass: 'bg-emerald-400',
-        detail: 'Zrak je čist; normalne aktivnosti na otvorenom.',
+        detail: 'Air is clean; normal outdoor activities are fine.',
       };
     case 2:
       return {
-        label: 'Umjereno',
+        label: 'Fair',
         segmentClass: 'bg-lime-400',
-        detail: 'Prihvatljivo za većinu; osjetljive skupine mogu osjetiti blage simptome.',
+        detail: 'Acceptable for most; sensitive groups may experience mild symptoms.',
       };
     case 3:
       return {
-        label: 'Loše',
+        label: 'Moderate',
         segmentClass: 'bg-amber-400',
-        detail: 'Osjetljive skupine trebaju smanjiti duži boravak na otvorenom.',
+        detail: 'Sensitive groups should reduce prolonged outdoor exertion.',
       };
     case 4:
       return {
-        label: 'Vrlo loše',
+        label: 'Poor',
         segmentClass: 'bg-orange-500',
-        detail: 'Mogući zdravstveni učinci za sve; smanjite napor na otvorenom.',
+        detail: 'Health effects possible for all; reduce outdoor exertion.',
       };
     case 5:
       return {
-        label: 'Izrazito loše',
+        label: 'Very Poor',
         segmentClass: 'bg-red-500',
-        detail: 'Upozorenje zdravlju — izbjegavajte duži boravak na otvorenom.',
+        detail: 'Health warning — avoid prolonged outdoor exposure.',
       };
     default:
       return {
-        label: 'Nepoznato',
+        label: 'Unknown',
         segmentClass: 'bg-white/25',
         detail: '',
       };

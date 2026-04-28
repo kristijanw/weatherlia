@@ -11,7 +11,7 @@ import { SevenDayForecast } from '../components/SevenDayForecast';
 import { WeatherMapCard } from '../components/WeatherMapCard';
 import { syncFavoriteCityToWidget } from '../plugins/widgetSync';
 
-const DEFAULT_CITY = 'Rijeka';
+const DEFAULT_CITY = 'London';
 
 export function MainPage() {
   const { currentWeather, isLoading, error, favorites, setWeather, setLoading, setError, addRecentSearch } =
@@ -29,7 +29,7 @@ export function MainPage() {
         addRecentSearch(data.location.name);
         setCity(query);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Nepoznata greška');
+        setError(e instanceof Error ? e.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
@@ -40,7 +40,8 @@ export function MainPage() {
   useEffect(() => {
     if (!hasLoaded.current) {
       hasLoaded.current = true;
-      load(DEFAULT_CITY);
+      const startCity = useWeatherStore.getState().favorites[0] ?? DEFAULT_CITY;
+      load(startCity);
     }
   }, [load]);
 
@@ -64,7 +65,7 @@ export function MainPage() {
 
         {error && !isLoading && (
           <div className="p-6 bg-white/5 border border-white/10 rounded-2xl text-center">
-            <p className="text-red-400 font-medium mb-1">Greška</p>
+            <p className="text-red-400 font-medium mb-1">Error</p>
             <p className="text-white/60 text-sm">{error}</p>
           </div>
         )}

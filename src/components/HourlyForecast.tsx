@@ -30,7 +30,7 @@ export function HourlyForecast({ forecastDays }: HourlyForecastProps) {
       className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-semibold">Prognoza po satima</h3>
+        <h3 className="text-white font-semibold">Hourly Forecast</h3>
         <div className="flex gap-1">
           <button
             onClick={() => scroll('left')}
@@ -56,8 +56,8 @@ export function HourlyForecast({ forecastDays }: HourlyForecastProps) {
           const time = new Date(hour.time);
           const isNow = i === 0;
           const label = isNow
-            ? 'Sad'
-            : time.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit' });
+            ? 'Now'
+            : time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
           return (
             <div

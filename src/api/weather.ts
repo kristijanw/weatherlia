@@ -16,47 +16,47 @@ interface GeoResult {
 
 function wmoToText(wmo: number): string {
   const map: Record<number, string> = {
-    0: 'Vedro',
-    1: 'Uglavnom vedro',
-    2: 'Djelomično oblačno',
-    3: 'Oblačno',
-    45: 'Magla',
-    48: 'Smrzavajuća magla',
-    51: 'Sitna kiša',
-    53: 'Umjerena sitna kiša',
-    55: 'Jaka sitna kiša',
-    56: 'Smrzavajuća sitna kiša',
-    57: 'Jaka smrzavajuća sitna kiša',
-    61: 'Lagana kiša',
-    63: 'Umjerena kiša',
-    65: 'Jaka kiša',
-    66: 'Smrzavajuća kiša',
-    67: 'Jaka smrzavajuća kiša',
-    71: 'Lagani snijeg',
-    73: 'Umjeren snijeg',
-    75: 'Jak snijeg',
-    77: 'Snježne pahulje',
-    80: 'Lagani pljuskovi',
-    81: 'Umjereni pljuskovi',
-    82: 'Jaki pljuskovi',
-    85: 'Lagani snježni pljuskovi',
-    86: 'Jaki snježni pljuskovi',
-    95: 'Grmljavinska oluja',
-    96: 'Oluja s laganom tučom',
-    99: 'Oluja s jakom tučom',
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Freezing fog',
+    51: 'Light drizzle',
+    53: 'Moderate drizzle',
+    55: 'Heavy drizzle',
+    56: 'Freezing drizzle',
+    57: 'Heavy freezing drizzle',
+    61: 'Light rain',
+    63: 'Moderate rain',
+    65: 'Heavy rain',
+    66: 'Freezing rain',
+    67: 'Heavy freezing rain',
+    71: 'Light snow',
+    73: 'Moderate snow',
+    75: 'Heavy snow',
+    77: 'Snow grains',
+    80: 'Light showers',
+    81: 'Moderate showers',
+    82: 'Heavy showers',
+    85: 'Light snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with light hail',
+    99: 'Thunderstorm with heavy hail',
   };
-  return map[wmo] ?? 'Nepoznato';
+  return map[wmo] ?? 'Unknown';
 }
 
 function degreesToDir(deg: number): string {
-  const dirs = ['S', 'SSI', 'SI', 'ISI', 'I', 'IJI', 'JI', 'JJI', 'J', 'JJZ', 'JZ', 'ZJZ', 'Z', 'ZSZ', 'SZ', 'SSZ'];
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
 function formatSunTime(isoStr: string): string {
   if (!isoStr) return '–';
   const d = new Date(isoStr);
-  return d.toLocaleTimeString('hr-HR', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
 function usAqiToEpaIndex(usAqi: number): number {
@@ -69,18 +69,18 @@ function usAqiToEpaIndex(usAqi: number): number {
 }
 
 async function geocode(query: string): Promise<{ lat: number; lon: number; name: string; country: string }> {
-  const url = `${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=1&language=hr&format=json`;
+  const url = `${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Grad nije pronađen');
+  if (!res.ok) throw new Error('City not found');
   const data = await res.json();
-  if (!data.results?.length) throw new Error(`Grad "${query}" nije pronađen`);
+  if (!data.results?.length) throw new Error(`City "${query}" not found`);
   const r = data.results[0] as GeoResult;
   return { lat: r.latitude, lon: r.longitude, name: r.name, country: r.country ?? '' };
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<{ name: string; country: string }> {
   try {
-    const url = `${NOMINATIM_URL}?lat=${lat}&lon=${lon}&format=json&accept-language=hr`;
+    const url = `${NOMINATIM_URL}?lat=${lat}&lon=${lon}&format=json&accept-language=en`;
     const res = await fetch(url, { headers: { 'User-Agent': 'WeatherLia/1.0' } });
     if (!res.ok) return { name: `${lat.toFixed(2)}, ${lon.toFixed(2)}`, country: '' };
     const data = await res.json();
@@ -132,7 +132,7 @@ export async function fetchWeather(query: string): Promise<WeatherData> {
     fetch(airUrl).catch(() => null),
   ]);
 
-  if (!forecastRes.ok) throw new Error('Greška pri dohvaćanju podataka o vremenu');
+  if (!forecastRes.ok) throw new Error('Failed to fetch weather data');
   const f = await forecastRes.json();
   const air = airRes?.ok ? await airRes.json() : null;
 
@@ -140,7 +140,6 @@ export async function fetchWeather(query: string): Promise<WeatherData> {
   const daily = f.daily;
   const hourly = f.hourly;
 
-  // Air quality
   const usAqi = air?.current?.us_aqi ?? null;
   const epaIndex = usAqi !== null ? usAqiToEpaIndex(usAqi) : undefined;
   const airQuality = air
@@ -154,7 +153,6 @@ export async function fetchWeather(query: string): Promise<WeatherData> {
       }
     : undefined;
 
-  // Build forecast days
   const forecastdays = (daily.time as string[]).map((date, i) => {
     const dayHours = (hourly.time as string[])
       .map((t, hi) => ({ t, hi }))
@@ -237,7 +235,7 @@ export async function fetchWeather(query: string): Promise<WeatherData> {
 
 export async function searchCities(query: string): Promise<SearchResult[]> {
   if (query.length < 2) return [];
-  const url = `${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=10&language=hr&format=json`;
+  const url = `${GEOCODING_URL}?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
   const res = await fetch(url);
   if (!res.ok) return [];
   const data = await res.json();

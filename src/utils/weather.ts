@@ -24,34 +24,32 @@ export function getWeatherGradient(code: number, isDay: number): string {
 }
 
 export function getUVLabel(uv: number): { label: string; color: string } {
-  if (uv <= 2) return { label: 'Nizak', color: 'text-green-400' };
-  if (uv <= 5) return { label: 'Umjeren', color: 'text-yellow-400' };
-  if (uv <= 7) return { label: 'Visok', color: 'text-orange-400' };
-  if (uv <= 10) return { label: 'Vrlo visok', color: 'text-red-400' };
-  return { label: 'Ekstremno', color: 'text-purple-400' };
+  if (uv <= 2) return { label: 'Low', color: 'text-green-400' };
+  if (uv <= 5) return { label: 'Moderate', color: 'text-yellow-400' };
+  if (uv <= 7) return { label: 'High', color: 'text-orange-400' };
+  if (uv <= 10) return { label: 'Very High', color: 'text-red-400' };
+  return { label: 'Extreme', color: 'text-purple-400' };
 }
 
-/** US EPA kvaliteta zraka (1–6) — Open-Meteo US AQI mapiran na EPA indeks 1–6. */
 export function getEpaAqiLabel(index: number): { label: string; color: string } {
   switch (index) {
     case 1:
-      return { label: 'Dobar', color: 'text-emerald-300' };
+      return { label: 'Good', color: 'text-emerald-300' };
     case 2:
-      return { label: 'Umjeren', color: 'text-lime-300' };
+      return { label: 'Moderate', color: 'text-lime-300' };
     case 3:
-      return { label: 'Nezdrav za osjetljive', color: 'text-yellow-300' };
+      return { label: 'Unhealthy for Sensitive Groups', color: 'text-yellow-300' };
     case 4:
-      return { label: 'Nezdrav', color: 'text-orange-400' };
+      return { label: 'Unhealthy', color: 'text-orange-400' };
     case 5:
-      return { label: 'Vrlo nezdrav', color: 'text-red-400' };
+      return { label: 'Very Unhealthy', color: 'text-red-400' };
     case 6:
-      return { label: 'Opasan', color: 'text-purple-400' };
+      return { label: 'Hazardous', color: 'text-purple-400' };
     default:
-      return { label: 'Nepoznato', color: 'text-white/60' };
+      return { label: 'Unknown', color: 'text-white/60' };
   }
 }
 
-/** Segmenti trake EPA 1–6 (pozadina). */
 export function getEpaAqiBarSegmentClass(index: number): string {
   switch (index) {
     case 1:
@@ -80,10 +78,10 @@ export function formatDate(dateStr: string): string {
   const todayStr = today.toISOString().split('T')[0];
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  if (dateStr === todayStr) return 'Danas';
-  if (dateStr === tomorrowStr) return 'Sutra';
+  if (dateStr === todayStr) return 'Today';
+  if (dateStr === tomorrowStr) return 'Tomorrow';
 
-  return date.toLocaleDateString('hr-HR', {
+  return date.toLocaleDateString('en-GB', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',

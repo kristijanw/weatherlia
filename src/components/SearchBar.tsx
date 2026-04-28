@@ -86,7 +86,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
               handleSelect(query.trim());
             }
           }}
-          placeholder="Pretraži grad ili poštanski broj..."
+          placeholder="Search city or postal code..."
           className="flex-1 bg-transparent text-white placeholder-white/40 outline-none text-sm"
         />
         {isSearching && (
@@ -103,7 +103,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         <button
           onClick={handleGPS}
           className="text-white/50 hover:text-white transition-colors flex-shrink-0"
-          title="Koristi GPS lokaciju"
+          title="Use GPS location"
         >
           <MapPin size={18} />
         </button>
@@ -123,7 +123,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 {favorites.length > 0 && (
                   <div className="p-2">
                     <p className="text-white/40 text-xs px-2 pb-1 flex items-center gap-1">
-                      <Star size={11} /> Favoriti
+                      <Star size={11} /> Favourites
                     </p>
                     {favorites.slice(0, 5).map((city) => (
                       <button
@@ -139,7 +139,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 {recentSearches.length > 0 && (
                   <div className="p-2 border-t border-white/5">
                     <p className="text-white/40 text-xs px-2 pb-1 flex items-center gap-1">
-                      <Clock size={11} /> Nedavno
+                      <Clock size={11} /> Recent
                     </p>
                     {recentSearches.slice(0, 5).map((city) => (
                       <button
@@ -154,7 +154,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
                 )}
                 {favorites.length === 0 && recentSearches.length === 0 && (
                   <div className="p-4 text-white/40 text-sm text-center">
-                    Počni tipkati za pretragu gradova
+                    Start typing to search cities
                   </div>
                 )}
               </>

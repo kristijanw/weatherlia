@@ -20,7 +20,7 @@ export function SevenDayForecast({ days }: SevenDayForecastProps) {
       transition={{ delay: 0.2 }}
       className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4"
     >
-      <h3 className="text-white font-semibold mb-3">7-dnevna prognoza</h3>
+      <h3 className="text-white font-semibold mb-3">7-Day Forecast</h3>
       <div className="space-y-1">
         {days.map((day, i) => {
           const isExp = expanded === i;
@@ -64,14 +64,14 @@ export function SevenDayForecast({ days }: SevenDayForecastProps) {
                     className="overflow-hidden"
                   >
                     <div className="px-3 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <DetailItem icon={<Wind size={13} />} label="Vjetar" value={`${day.day.maxwind_kph} km/h`} />
-                      <DetailItem icon={<Droplets size={13} />} label="Vlažnost" value={`${day.day.avghumidity}%`} />
+                      <DetailItem icon={<Wind size={13} />} label="Wind" value={`${day.day.maxwind_kph} km/h`} />
+                      <DetailItem icon={<Droplets size={13} />} label="Humidity" value={`${day.day.avghumidity}%`} />
                       <DetailItem icon={<Sun size={13} />} label="UV" value={String(day.day.uv)} />
-                      <DetailItem label="🌧️ Oborine" value={`${day.day.totalprecip_mm} mm`} />
-                      <DetailItem label="🌅 Izlazak" value={day.astro.sunrise} />
-                      <DetailItem label="🌇 Zalazak" value={day.astro.sunset} />
-                      <DetailItem label="🌙 Mjesec" value={day.astro.moon_phase} />
-                      <DetailItem label="📝 Stanje" value={day.day.condition.text} />
+                      <DetailItem label="🌧️ Precipitation" value={`${day.day.totalprecip_mm} mm`} />
+                      <DetailItem label="🌅 Sunrise" value={day.astro.sunrise} />
+                      <DetailItem label="🌇 Sunset" value={day.astro.sunset} />
+                      <DetailItem label="🌙 Moon" value={day.astro.moon_phase} />
+                      <DetailItem label="📝 Condition" value={day.day.condition.text} />
                     </div>
                   </motion.div>
                 )}

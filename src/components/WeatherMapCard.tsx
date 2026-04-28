@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Play, Pause } from 'lucide-react';
 import { motion } from 'framer-motion';
 import 'leaflet-gesture-handling/dist/leaflet-gesture-handling.css';
 import {
@@ -10,21 +10,30 @@ import {
 
 const OWM_KEY = '9de243494c0b295cca9337e1e96b00e2';
 const AQICN_KEY = import.meta.env.VITE_AQICN_TOKEN ?? '';
+const RAINVIEWER_API = 'https://api.rainviewer.com/public/weather-maps.json';
 
 const TILE_LAYERS = [
-  { id: 'precipitation_new', label: 'Oborine' },
-  { id: 'clouds_new', label: 'Oblačnost' },
-  { id: 'temp_new', label: 'Temperatura' },
-  { id: 'wind_new', label: 'Vjetar' },
+  { id: 'clouds_new', label: 'Clouds' },
+  { id: 'temp_new', label: 'Temperature' },
+  { id: 'wind_new', label: 'Wind' },
 ] as const;
 
 type TileLayerId = (typeof TILE_LAYERS)[number]['id'];
-type MapLayerId = TileLayerId | 'air_pollution';
+type MapLayerId = TileLayerId | 'radar' | 'air_pollution';
 
 const MAP_LAYERS: { id: MapLayerId; label: string }[] = [
+  { id: 'radar', label: 'Precipitation' },
   ...TILE_LAYERS.map((l) => ({ id: l.id, label: l.label })),
-  { id: 'air_pollution', label: 'Kvaliteta zraka' },
+  { id: 'air_pollution', label: 'Air Quality' },
 ];
+
+// Approximate colors for RainViewer color scheme 4 (TWC), light→heavy
+const RADAR_LEGEND = ['#00d4ff', '#0090e8', '#0058c8', '#00c000', '#50d000', '#e6e600', '#e89600', '#e83200', '#c00000', '#8b0000'];
+
+interface RainViewerFrame {
+  time: number;
+  path: string;
+}
 
 interface WeatherMapCardProps {
   lat: number;
@@ -35,13 +44,20 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<import('leaflet').Map | null>(null);
   const overlayRef = useRef<import('leaflet').TileLayer | null>(null);
-  const [activeLayer, setActiveLayer] = useState<MapLayerId>('precipitation_new');
+  const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [mapVersion, setMapVersion] = useState(0);
+  const [activeLayer, setActiveLayer] = useState<MapLayerId>('radar');
   const [airPollution, setAirPollution] = useState<OwmAirPollutionResponse | null>(null);
   const [airError, setAirError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let map: import('leaflet').Map;
+  const [radarFrames, setRadarFrames] = useState<RainViewerFrame[]>([]);
+  const [radarHost, setRadarHost] = useState('https://tilecache.rainviewer.com');
+  const [frameIndex, setFrameIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
+  // Map init — re-runs only when location changes
+  useEffect(() => {
     async function init() {
       const L = (await import('leaflet')).default;
       (window as unknown as { L: typeof L }).L = L;
@@ -51,17 +67,17 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-
       if (!mapRef.current) return;
 
-      map = L.map(mapRef.current, {
+      const map = L.map(mapRef.current, {
         zoomControl: true,
+        attributionControl: false,
         gestureHandling: true,
         gestureHandlingOptions: {
           text: {
-            touch: 'Pomičite kartu pomoću dva prsta',
-            scroll: 'Upotrijebite Ctrl i kotačić miša da biste zumirali kartu',
-            scrollMac: 'Upotrijebite ⌘ i kotačić da biste zumirali kartu',
+            touch: 'Use two fingers to move the map',
+            scroll: 'Use Ctrl + scroll to zoom the map',
+            scrollMac: 'Use ⌘ + scroll to zoom the map',
           },
         },
       }).setView([lat, lon], 7);
@@ -71,15 +87,6 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
         attribution: '©OpenStreetMap, ©CartoDB',
         maxZoom: 19,
       }).addTo(map);
-
-      if (activeLayer !== 'air_pollution') {
-        const overlay = L.tileLayer(
-          `https://tile.openweathermap.org/map/${activeLayer}/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
-          { opacity: 0.6, maxZoom: 19 }
-        );
-        overlay.addTo(map);
-        overlayRef.current = overlay;
-      }
 
       const icon = L.divIcon({
         html: `<div style="width:28px;height:36px;display:flex;align-items:center;justify-content:center">
@@ -93,6 +100,8 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
         className: '',
       });
       L.marker([lat, lon], { icon }).addTo(map);
+
+      setMapVersion((v) => v + 1);
     }
 
     init();
@@ -106,8 +115,55 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon]);
 
+  // Fetch RainViewer frames when on radar layer
   useEffect(() => {
-    async function updateLayer() {
+    if (activeLayer !== 'radar') return;
+    let cancelled = false;
+    fetch(RAINVIEWER_API)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const past: RainViewerFrame[] = data.radar?.past ?? [];
+        const nowcast: RainViewerFrame[] = data.radar?.nowcast ?? [];
+        const frames = [...past, ...nowcast];
+        setRadarHost(data.host ?? 'https://tilecache.rainviewer.com');
+        setRadarFrames(frames);
+        setFrameIndex(past.length > 0 ? past.length - 1 : 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLayer]);
+
+  // Radar tile update — runs when frame changes or map re-inits
+  useEffect(() => {
+    if (activeLayer !== 'radar' || !radarFrames.length) return;
+    async function update() {
+      const L = (await import('leaflet')).default;
+      const map = mapInstanceRef.current;
+      if (!map) return;
+      if (overlayRef.current) {
+        map.removeLayer(overlayRef.current);
+        overlayRef.current = null;
+      }
+      const frame = radarFrames[frameIndex];
+      if (!frame) return;
+      // color scheme 4 (TWC), smooth=1, snow=1
+      const tile = L.tileLayer(
+        `${radarHost}${frame.path}/512/{z}/{x}/{y}/4/1_1.png`,
+        { opacity: 0.75, maxZoom: 19, attribution: '© <a href="https://rainviewer.com">RainViewer</a>' }
+      );
+      tile.addTo(map);
+      overlayRef.current = tile;
+    }
+    update();
+  }, [activeLayer, radarFrames, radarHost, frameIndex, mapVersion]);
+
+  // Non-radar overlay update
+  useEffect(() => {
+    if (activeLayer === 'radar') return;
+    async function update() {
       const L = (await import('leaflet')).default;
       const map = mapInstanceRef.current;
       if (!map) return;
@@ -117,24 +173,44 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
       }
       if (activeLayer === 'air_pollution') {
         if (!AQICN_KEY) return;
-        const overlay = L.tileLayer(
+        const tile = L.tileLayer(
           `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_KEY}`,
           { opacity: 0.7, maxZoom: 19, attribution: '© <a href="https://waqi.info">WAQI</a>' }
         );
-        overlay.addTo(map);
-        overlayRef.current = overlay;
+        tile.addTo(map);
+        overlayRef.current = tile;
         return;
       }
-      const overlay = L.tileLayer(
+      const tile = L.tileLayer(
         `https://tile.openweathermap.org/map/${activeLayer}/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
         { opacity: 0.6, maxZoom: 19 }
       );
-      overlay.addTo(map);
-      overlayRef.current = overlay;
+      tile.addTo(map);
+      overlayRef.current = tile;
     }
-    updateLayer();
+    update();
+  }, [activeLayer, mapVersion]);
+
+  // Animation loop
+  useEffect(() => {
+    if (animTimerRef.current) {
+      clearInterval(animTimerRef.current);
+      animTimerRef.current = null;
+    }
+    if (!isPlaying || !radarFrames.length) return;
+    animTimerRef.current = setInterval(() => {
+      setFrameIndex((prev) => (prev + 1) % radarFrames.length);
+    }, 600);
+    return () => {
+      if (animTimerRef.current) clearInterval(animTimerRef.current);
+    };
+  }, [isPlaying, radarFrames.length]);
+
+  useEffect(() => {
+    if (activeLayer !== 'radar') setIsPlaying(false);
   }, [activeLayer]);
 
+  // Air pollution data
   useEffect(() => {
     if (activeLayer !== 'air_pollution') {
       setAirPollution(null);
@@ -152,7 +228,7 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
       } catch (e) {
         if (!cancelled) {
           setAirPollution(null);
-          setAirError(e instanceof Error ? e.message : 'Greška');
+          setAirError(e instanceof Error ? e.message : 'Error');
         }
       }
     })();
@@ -163,6 +239,9 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
 
   const air = airPollution?.list[0];
   const aqiInfo = air ? getOwmAqiPresentation(air.main.aqi) : null;
+  const currentFrame = radarFrames[frameIndex];
+  const frameTime = currentFrame ? new Date(currentFrame.time * 1000) : null;
+  const isNowcast = currentFrame ? currentFrame.time > Math.floor(Date.now() / 1000) : false;
 
   return (
     <motion.div
@@ -173,7 +252,7 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
     >
       <div className="flex items-center gap-2 mb-3">
         <MapPin size={16} className="text-white/60" />
-        <h3 className="text-white font-semibold">Radar karta</h3>
+        <h3 className="text-white font-semibold">Radar Map</h3>
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap">
@@ -194,18 +273,122 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
       </div>
 
       <div className="relative rounded-xl overflow-hidden">
-        <div ref={mapRef} className="rounded-xl overflow-hidden" style={{ height: 500 }} />
+        <div ref={mapRef} className="rounded-xl overflow-hidden" style={{ height: 620 }} />
 
+        {/* Precipitation (RainViewer) panel */}
+        {activeLayer === 'radar' && radarFrames.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 z-[800] p-3 pt-12 bg-gradient-to-t from-black/85 via-black/60 to-transparent pointer-events-none">
+            <div className="pointer-events-auto rounded-xl bg-black/60 border border-white/15 backdrop-blur-md p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPlaying((p) => !p)}
+                  className="w-8 h-8 flex-shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                >
+                  {isPlaying
+                    ? <Pause size={13} className="text-white" />
+                    : <Play size={13} className="text-white ml-0.5" />}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={radarFrames.length - 1}
+                  value={frameIndex}
+                  onChange={(e) => {
+                    setIsPlaying(false);
+                    setFrameIndex(Number(e.target.value));
+                  }}
+                  className="flex-1 accent-blue-400 cursor-pointer"
+                />
+                <div className="flex items-center gap-1.5 min-w-[90px] justify-end">
+                  {isNowcast && (
+                    <span className="text-[10px] text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-full leading-none">
+                      forecast
+                    </span>
+                  )}
+                  <span className="text-white/80 text-xs tabular-nums font-medium">
+                    {frameTime?.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) ?? ''}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white/45 text-[10px] flex-shrink-0">Light</span>
+                <div className="flex flex-1 rounded overflow-hidden h-2">
+                  {RADAR_LEGEND.map((color, i) => (
+                    <div key={i} style={{ background: color, flex: 1 }} />
+                  ))}
+                </div>
+                <span className="text-white/45 text-[10px] flex-shrink-0">Heavy</span>
+              </div>
+              <p className="text-white/30 text-[10px]">
+                © RainViewer · {radarFrames.length} frames (~2h history + forecast)
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Clouds panel */}
+        {activeLayer === 'clouds_new' && (
+          <div className="absolute bottom-0 left-0 right-0 z-[800] p-3 pt-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent pointer-events-none">
+            <div className="pointer-events-auto rounded-xl bg-black/60 border border-white/15 backdrop-blur-md p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-white/45 text-[10px] flex-shrink-0">Clear</span>
+                <div
+                  className="flex-1 rounded overflow-hidden h-2"
+                  style={{ background: 'linear-gradient(to right, rgba(180,200,220,0.05), rgba(180,200,230,0.35), rgba(200,215,235,0.6), rgba(220,230,245,0.8), rgba(240,245,255,0.95))' }}
+                />
+                <span className="text-white/45 text-[10px] flex-shrink-0">Overcast</span>
+              </div>
+              <p className="text-white/30 text-[10px]">© OpenWeatherMap</p>
+            </div>
+          </div>
+        )}
+
+        {/* Temperature panel */}
+        {activeLayer === 'temp_new' && (
+          <div className="absolute bottom-0 left-0 right-0 z-[800] p-3 pt-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent pointer-events-none">
+            <div className="pointer-events-auto rounded-xl bg-black/60 border border-white/15 backdrop-blur-md p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-300 text-[10px] flex-shrink-0">Cold</span>
+                <div
+                  className="flex-1 rounded overflow-hidden h-2"
+                  style={{ background: 'linear-gradient(to right, #000080, #0000ff, #00b4ff, #00ffff, #00ff80, #bfff00, #ffff00, #ffaa00, #ff4400, #cc0000)' }}
+                />
+                <span className="text-red-300 text-[10px] flex-shrink-0">Hot</span>
+              </div>
+              <p className="text-white/30 text-[10px]">© OpenWeatherMap</p>
+            </div>
+          </div>
+        )}
+
+        {/* Wind panel */}
+        {activeLayer === 'wind_new' && (
+          <div className="absolute bottom-0 left-0 right-0 z-[800] p-3 pt-10 bg-gradient-to-t from-black/85 via-black/60 to-transparent pointer-events-none">
+            <div className="pointer-events-auto rounded-xl bg-black/60 border border-white/15 backdrop-blur-md p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-white/45 text-[10px] flex-shrink-0">Calm</span>
+                <div
+                  className="flex-1 rounded overflow-hidden h-2"
+                  style={{ background: 'linear-gradient(to right, #003f7f, #0070c0, #00b0f0, #00e080, #a0f000, #ffe000, #ff8800, #ff2200, #990000)' }}
+                />
+                <span className="text-white/45 text-[10px] flex-shrink-0">Strong</span>
+              </div>
+              <p className="text-white/30 text-[10px]">© OpenWeatherMap</p>
+            </div>
+          </div>
+        )}
+
+        {/* Air Quality panel */}
         {activeLayer === 'air_pollution' && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 pt-8 bg-gradient-to-t from-black/85 via-black/70 to-transparent pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 z-[800] p-3 pt-8 bg-gradient-to-t from-black/85 via-black/70 to-transparent pointer-events-none">
             <div className="pointer-events-auto rounded-xl bg-black/55 border border-white/15 backdrop-blur-md p-3 text-sm text-white">
               {airError && <p className="text-red-300">{airError}</p>}
-              {!airError && !air && <p className="text-white/60">Učitavanje…</p>}
+              {!airError && !air && <p className="text-white/60">Loading…</p>}
               {aqiInfo && air && (
                 <>
                   <div className="flex items-center justify-between gap-3 mb-2">
-                    <span className="text-white/70">OpenWeather indeks (1–5)</span>
-                    <span className={`font-bold ${aqiInfo.label === 'Nepoznato' ? 'text-white/50' : 'text-white'}`}>
+                    <span className="text-white/70">OpenWeather Index (1–5)</span>
+                    <span className={`font-bold ${aqiInfo.label === 'Unknown' ? 'text-white/50' : 'text-white'}`}>
                       {air.main.aqi} — {aqiInfo.label}
                     </span>
                   </div>
@@ -232,8 +415,7 @@ export function WeatherMapCard({ lat, lon }: WeatherMapCardProps) {
                     <Pollutant label="CO" value={air.components.co} unit="µg/m³" />
                   </div>
                   <p className="text-white/45 text-[10px] mt-2 leading-tight">
-                    Podaci za točku ({lat.toFixed(2)}, {lon.toFixed(2)}). Za US EPA ljestvicu (1–6) pogledajte karticu
-                    iznad — WeatherAPI i OpenWeather koriste različite modele.
+                    Data for point ({lat.toFixed(2)}, {lon.toFixed(2)}). OpenWeather uses a different model than US EPA (1–6).
                   </p>
                 </>
               )}

@@ -30,7 +30,7 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
       ? `${Math.round(current.air_quality.pm2_5)} µg/m³`
       : null;
 
-  const localDate = new Date(location.localtime).toLocaleDateString('hr-HR', {
+  const localDate = new Date(location.localtime).toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -75,32 +75,32 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
 
       <p className="text-white/80 font-medium mb-1">{current.condition.text}</p>
       <p className="text-white/50 text-sm mb-6">
-        Osjeća se kao {formatTemp(current.feelslike_c, current.feelslike_f, unit)}
+        Feels like {formatTemp(current.feelslike_c, current.feelslike_f, unit)}
       </p>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <StatCard icon={<Droplets size={16} />} label="Vlažnost" value={`${current.humidity}%`} />
+        <StatCard icon={<Droplets size={16} />} label="Humidity" value={`${current.humidity}%`} />
         <StatCard
           icon={<Wind size={16} />}
-          label="Vjetar"
+          label="Wind"
           value={`${current.wind_kph} km/h ${current.wind_dir}`}
         />
-        <StatCard icon={<Gauge size={16} />} label="Tlak" value={`${current.pressure_mb} mb`} />
-        <StatCard icon={<Eye size={16} />} label="Vidljivost" value={`${current.vis_km} km`} />
+        <StatCard icon={<Gauge size={16} />} label="Pressure" value={`${current.pressure_mb} mb`} />
+        <StatCard icon={<Eye size={16} />} label="Visibility" value={`${current.vis_km} km`} />
         <StatCard
           icon={<Sun size={16} />}
-          label="UV indeks"
+          label="UV Index"
           value={<span className={uv.color}>{current.uv} – {uv.label}</span>}
         />
         <StatCard
           icon={<Thermometer size={16} />}
-          label="Izlazak / Zalazak"
+          label="Sunrise / Sunset"
           value={astro ? `${astro.sunrise} / ${astro.sunset}` : '–'}
         />
         <StatCard
           icon={<Leaf size={16} />}
-          label="Kvaliteta zraka"
+          label="Air Quality"
           value={
             aqi && typeof epaIndex === 'number' ? (
               <div className="space-y-2">
@@ -122,11 +122,11 @@ export function CurrentWeatherCard({ data }: CurrentWeatherCardProps) {
                   ))}
                 </div>
                 <p className="text-[10px] text-white/45 leading-tight">
-                  EPA 1 = dobar zrak, 6 = opasno (US EPA)
+                  EPA 1 = Good, 6 = Hazardous (US EPA)
                 </p>
               </div>
             ) : (
-              <span className="text-white/50">Nema podataka za ovu lokaciju</span>
+              <span className="text-white/50">No data for this location</span>
             )
           }
         />
